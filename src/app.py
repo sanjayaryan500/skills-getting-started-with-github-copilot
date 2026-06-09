@@ -91,28 +91,38 @@ def get_activities():
 @app.post("/activities/{activity_name}/signup")
 def signup_for_activity(activity_name: str, email: str):
     """Sign up a student for an activity."""
+    normalized_email = email.strip().lower()
+
+    if not normalized_email or "@" not in normalized_email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
     activity = activities[activity_name]
+    existing_participants = [participant.strip().lower() for participant in activity["participants"]]
 
-    if email in activity["participants"]:
+    if normalized_email in existing_participants:
         raise HTTPException(status_code=400, detail="Student is already signed up for this activity")
 
-    activity["participants"].append(email)
-    return {"message": f"Signed up {email} for {activity_name}"}
+    activity["participants"].append(normalized_email)
+    return {"message": f"Signed up {normalized_email} for {activity_name}"}
 
 
 @app.delete("/activities/{activity_name}/unregister")
 def unregister_for_activity(activity_name: str, email: str):
     """Remove a student from an activity."""
+    normalized_email = email.strip().lower()
+
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
     activity = activities[activity_name]
+    existing_participants = [participant.strip().lower() for participant in activity["participants"]]
 
-    if email not in activity["participants"]:
+    if normalized_email not in existing_participants:
         raise HTTPException(status_code=404, detail="Student is not signed up for this activity")
 
-    activity["participants"].remove(email)
-    return {"message": f"Removed {email} from {activity_name}"}
+    index = existing_participants.index(normalized_email)
+    activity["participants"].pop(index)
+    return {"message": f"Removed {normalized_email} from {activity_name}"}
